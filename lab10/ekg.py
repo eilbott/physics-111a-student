@@ -39,8 +39,6 @@ def configure_analog_output(
     analogOut.reset(-1)  # Reset both channels.
     analogOut.nodeEnableSet(CH1, node, True)
 
-    # 9.1.1: (DC voltage to lit up LED) uncomment the relevant lines and edit where necessary:
-    # 9.1.2: uncomment below and comment above
     analogOut.nodeFunctionSet(CH1, node, DwfAnalogOutFunction.Sine)
     analogOut.nodeFrequencySet(CH1, node, analog_out_frequency)
     analogOut.nodeAmplitudeSet(CH1, node, analog_out_amplitude)
@@ -66,7 +64,7 @@ def configure_trigger(analogIn, trigger_flag, record_length, channel, trigger_le
         analogIn.triggerPositionSet(trigger_position)
         analogIn.triggerLevelSet(trigger_level)
         analogIn.triggerHysteresisSet(
-            0.010
+            0.10
         )  # A small amount of hysteresis to make sure we only see rising edges.
 
 
@@ -129,24 +127,14 @@ def acquire_one_round_samps(analogIn, samples, channels, trigger_flag, acquisiti
 
 def get_lock_in(samples, lock_in_vals, lock_in_times, time_point):
     # Assuming that the driving signal is in column 0 and EKG is in column 1
+
     driving_signal = samples[:, 0]
     ekg_signal = samples[:, 1]
     N = len(driving_signal)
 
-    # Phase information from the driving signal
-    analytic_signal = np.fft.ifft(np.fft.fft(driving_signal) * 2)
-    phase = np.angle(analytic_signal)
-
-    phase = 0
-    # Construct a sine wave using phase information
-    time_2 = np.arange(N) / SINE_FREQUENCY
-    ref_sig = 0.25 * np.sin(2 * np.pi * time_2 + phase) + 1.9
-    ref_cos = 0.25 * np.sin(2 * np.pi * time_2 + phase + np.pi / 2) + 1.9
-
-    curr_lock = np.sqrt(
-        (np.sum(ref_sig * ekg_signal) / N) ** 2
-        + (np.sum(ref_cos * ekg_signal) / N) ** 2
-    )
+    # 10.6 TODO: find the current lock-in value
+    curr_lock = None
+    # End TODO
     if len(lock_in_vals) >= 300:
         lock_in_vals.pop(0)
         lock_in_times.pop(0)
@@ -228,7 +216,8 @@ def run_demo(
     xf = yf = None
 
     # Create subplots
-    fig, (ax0, ax1, ax2) = plt.subplots(3, 1, figsize=(5, 8))
+    fig, (ax0, ax1, ax2) = plt.subplots(3, 1, figsize=(5, 7))
+    plt.subplots_adjust(hspace=0.7)
     while True:
         acquisition_nr += 1  # Increment acquisition number.
 
@@ -330,9 +319,7 @@ def plot_samples(
         )
 
         if trigger_flag:
-            ax0.set_xlabel(
-                "time relative to trigger [s]\ntriggering on rising zero transition of channel 2"
-            )
+            ax0.set_xlabel("time relative to trigger [s]")
         else:
             ax0.set_xlabel("acquisition time [s]")
 
@@ -351,12 +338,8 @@ def plot_samples(
             ax0.axvline(0.0, c="r")
             ax0.axhline(trigger_level, c="r")
 
-        (ch1_line,) = ax0.plot(
-            t, samples[:, CH1], color="#346f9f", label="channel 1 (cos)"
-        )
-        (ch2_line,) = ax0.plot(
-            t, samples[:, 1], color="#ffdd56", label="channel 2 (sin)"
-        )
+        (ch1_line,) = ax0.plot(t, samples[:, CH1], color="#346f9f", label="channel 1")
+        (ch2_line,) = ax0.plot(t, samples[:, 1], color="#ffdd56", label="channel 2")
 
         ax0.legend(loc="upper right")
     else:
@@ -377,15 +360,16 @@ def plot_lockin(ax1, lock_in_ch, lock_in_times, lock_in_vals):
         lock_in_ch.set_ydata(lock_in_vals)
         ax1.set_ylim(min(lock_in_vals), max(lock_in_vals))
         ax1.set_xlim(min(lock_in_times), max(lock_in_times))
-
     else:
         ax1.grid()
         ax1.set_title("lock in")
         (lock_in_ch,) = ax1.plot(
-            lock_in_times, lock_in_vals, color="#346f9f", label="channel 1 (cos)"
+            lock_in_times, lock_in_vals, color="#346f9f", label="channel 1"
         )
         ax1.set_xlim(0, 40)
         ax1.set_ylim(min(lock_in_vals), max(lock_in_vals))
+        ax1.set_xlabel("Time")
+        ax1.set_ylabel("Lock In Amplitude")
     return lock_in_ch
 
 
@@ -399,6 +383,8 @@ def plot_fft(ax2, fft_ch, xf, yf):
         ax2.grid()
         ax2.set_title("fft ")
         ax2.set_ylim(0, 2)
+        ax2.set_xlabel("Frequency")
+        ax2.set_ylabel("FFT Amplitude")
         (fft_ch,) = ax2.plot(xf, yf)
     return fft_ch
 

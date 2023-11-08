@@ -132,7 +132,7 @@ def get_lock_in(samples, lock_in_vals, lock_in_times, time_point):
     ekg_signal = samples[:, 1]
     N = len(driving_signal)
 
-    # 10.6 TODO: find the current lock-in value
+    # 10.6   TODO: find the current lock-in value
     curr_lock = None
     # End TODO
     if len(lock_in_vals) >= 300:

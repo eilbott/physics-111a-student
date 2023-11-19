@@ -2,8 +2,10 @@
 
 #! /usr/bin/env python3
 
-""" Lab 10.7 Heart Rate Lock-in/Modulation Measurement 
-  
+""" Lab 10.7 Heart Rate Lock-in Modulation 
+    
+    Based on python waveform demo
+
 Summary
 -------
 
@@ -108,13 +110,15 @@ lgc_lockIn = False #Calls the Lock-In function and plots
 #Student Version Initial Settings
 ANALOG_OUT_FREQUENCY = 100 #[Hz]
 #10.2.e Solution
-#ANALOG_OUT_FREQUENCY = 10 #[Hz]
-#Other useful settings
-#ANALOG_OUT_FREQUENCY = 1e3 #[Hz]
 
-# In theory the wavegen trigger should be absolutely synchronized to the oscilloscope trigger
+#Other useful settings
+ANALOG_OUT_FREQUENCY = 1e3 #[Hz]
+
+""" 
+In theory the wavegen trigger should be absolutely synchronized to the oscilloscope trigger
 # but I've noticed some potential issues, so I think you should consider calculating the 
-# demodulation phase shift in demodulation/lock-in routine.
+# demodulation phase shift in demodulation/lock-in routine. You can then hardcode it after you've run a bit.
+"""
 PHASE_DEMOD = None # it's calculated in demodulate/lock-in routine.
 #PHASE_DEMOD = -83.6*np.pi/180 #[radians] This is the value that I get in single mode ... beware it may change!
 
@@ -123,7 +127,7 @@ PHASE_DEMOD = None # it's calculated in demodulate/lock-in routine.
 
 #You can always choose 2 out of 3 of RECORD_LENGTH_SAMPLES, Record_Length_Time, 
 # and ANALOG_IN_SAMPLE_FREQUENCY.
-#
+
 # Option 1: For the Lock-in let's solve for the ANALOG_IN_SAMPLE_FREQUENCY in terms of the other 2
 #RECORD_LENGTH_SAMPLES= 16384
 #Record_Length_Time= 50e-3 #[s]
@@ -132,30 +136,30 @@ PHASE_DEMOD = None # it's calculated in demodulate/lock-in routine.
 # Option 1b: If you just want to see periodic number of traces
 # Initial Settings for student version
 RECORD_LENGTH_SAMPLES= 16384
-Record_Length_Time= 10/ANALOG_OUT_FREQUENCY #[s]
+Record_Length_Time= 20/ANALOG_OUT_FREQUENCY #[s]
 ANALOG_IN_SAMPLE_FREQUENCY = 1/Record_Length_Time *RECORD_LENGTH_SAMPLES #[Hz]
 
 #Option 2: For the demodulator, I suggests that you choose ANALOG_IN_SAMPLE_FREQUENCY, Record_Length_Time 
 #ANALOG_IN_SAMPLE_FREQUENCY = 40*ANALOG_OUT_FREQUENCY #[Hz]
-#Record_Length_Time = 30 #[s]
+#Record_Length_Time = 5 #[s]
 #RECORD_LENGTH_SAMPLES = round(Record_Length_Time*ANALOG_IN_SAMPLE_FREQUENCY)
 #We must recalculate Record_Length_Time due to the fact that RECORD_LENGTH_SAMPLES is integer
 #Record_Length_Time =  RECORD_LENGTH_SAMPLES/ANALOG_IN_SAMPLE_FREQUENCY#[s]
 
 # Total number of records (traces) that are taken before the code ends
 #NUMBER_RECORDS = 3
-NUMBER_RECORDS = round(20/Record_Length_Time) #let's run for 20s before stopping program 
+NUMBER_RECORDS = round(10/Record_Length_Time) #let's run for 20s before stopping program 
 
 #--------------- WaveGen Config Function (analogOut) -----------------------------------
 def configure_analog_out(analogOut, ANALOG_OUT_FREQUENCY):
-    # This function configues the analogOut Object which is the virtual WaveGen Object. Nearly 
-    # All the properties have a 1-to-1 correspondence with the GUI ... the one exception being I can't 
-    # figure out how to synchronize the wavegen and oscilloscope triggers :(
+    """ This function configues the analogOut Object which is the virtual WaveGen Object. Nearly 
+     All the properties have a 1-to-1 correspondence with the GUI ... the one exception being I can't 
+     figure out how to synchronize the wavegen and oscilloscope triggers :(
 
     # Inputs:
     #    1) analogOut: virtual object that controls the ADS wavegen 
     #    2) analog_out_frequency: frequency of the wavegen 
-    #        note: right now there is no functionality for different 
+    #        note: right now there is no functionality for different """
 
     # //////////Student Reconfigurable WaveGen Properties ///////////
     # TODO: 10.2.e: Modify these parameters as appropriate
@@ -163,14 +167,21 @@ def configure_analog_out(analogOut, ANALOG_OUT_FREQUENCY):
     #---- 10.2.e initial Student Version Settings -----
     ANALOG_OUT_AMPLITUDE = 1.1 #[V] wavegen amplitude
     ANALOG_OUT_OFFSET = 1.0  #[V] wavegen offset
-    nodeFunctionShape = DwfAnalogOutFunction.Triangle
     nodeFunctionSymmetry=50
-    # Other Options for DwfAnalogOutFunction
+    nodeFunctionShape = DwfAnalogOutFunction.Triangle
+    """ Other Options for DwfAnalogOutFunction
       #1) SQUARE
       #2) DC
       #3) Sine
-      # ... see pyDWF documentation for more options or just probe the enum directly
+      # ... see pyDWF documentation for more options or just probe the enum directly"""
     
+    #---- 10.2.e Solution -----
+    #?
+    #---- Rough optimum settings for heart rate for my configuration (yours is probably different)-----
+    #ANALOG_OUT_AMPLITUDE = 2.3 #[V]
+    #ANALOG_OUT_OFFSET = .3 #[V]
+    #nodeFunctionShape = DwfAnalogOutFunction.Sine
+    #nodeFunctionSymmetry=50
 
     #////////////////////////////////////////////////////////////
 
@@ -180,16 +191,19 @@ def configure_analog_out(analogOut, ANALOG_OUT_FREQUENCY):
     CH = 0  #channel 1
     #CH = 1 #channel 2
 
-    #node: each WaveGen channel has 3 `nodes' corresponding to the parameter columns of the 
+    """node: each WaveGen channel has 3 `nodes' corresponding to the parameter columns of the 
     # modulation tab in waveforms wavegen GUI
     #    1) Carrier: Use this for node for simple waveforms as well 
     #    2) AM:
-    #    3) FM:   
+    #    3) FM:"""   
     node = DwfAnalogOutNode.Carrier
     #node =  DwfAnalogOutNode.AM
 
-   # MP: pydwf says there is no good documenation as to what this is doing
-   # MP: I think this is just the enable true/false button on the waveforms wavegen/modulation tab
+    """
+    MP: pydwf says there is no good documenation as to what this is doing
+    MP: I think this is just the enable true/false button on the waveforms 
+    wavegen/modulation tab"""
+    
     analogOut.nodeEnableSet(CH, node, True)
 
     analogOut.nodeFunctionSet(CH, node, nodeFunctionShape)
@@ -211,10 +225,10 @@ def configure_analog_in(analogIn, trigger_flag):
     #////////// analogIn Parameters to Modify /////////////////
     # TODO Students feel free to modify as appropriate (10.3.f and later)
 
-    #This is the channel range
-    #   - If signal is inside the range <+/- 2.5V put  "5"V here
-    #   - If signal is >+/- 2.5V put "24"V here
-    # This sets an attenuator right before the ADC of the ADS oscilloscope
+    """This is the channel range
+       - If signal is inside the range <+/- 2.5V put  "5"V here
+       - If signal is >+/- 2.5V put "24"V here
+     This sets an attenuator right before the ADC of the ADS oscilloscope"""
     #CHANNEL_RANGE=[5,5]#[V]
     CHANNEL_RANGE=[24,24]#V
     #CHANNEL_RANGE=[24,5]#V
@@ -238,23 +252,28 @@ def configure_analog_in(analogIn, trigger_flag):
     analogIn.reset()
 
     analogIn.frequencySet(ANALOG_IN_SAMPLE_FREQUENCY)  #digitization rate of recorded trace
-    # We're in record mode, so length of record can be greater than the buffer size. 
-    # You just call and readout the buffer multiple times and concatenate to create your trace
     analogIn.recordLengthSet(Record_Length_Time)
      
 
     #------ Choose data taking mode -------
     #Now let's set the aquisition mode
-    #print("analogIn.mode: {}".format(analogIn.acquisitionModeGet()))
     
+    #print("analogIn.mode: {}".format(analogIn.acquisitionModeGet()))
     if RECORD_LENGTH_SAMPLES <= analogIn.bufferSizeGet():
-        # For record lengths that are shorter than the buffer, there is no reason to go continuous mode
+        """ 
+        For record lengths that are shorter than the buffer, there is no reason to go continuous mode. 
 
-        # According to docs, Single and Single1 are both supposed to take a single trace, fill the buffer completely and stop.
-        # MP: when using single,  AnalogOut.Status suggests that buffer is still accruing data after it fills. Use Single1
-        # don't use Single. I think the ADC buffer continues to cycle after it fills. Use Single1 instead
-        analogIn.acquisitionModeSet(DwfAcquisitionMode.Single1)
-        #analogIn.acquisitionModeSet(DwfAcquisitionMode.Single)
+        Both Single mode and Single1 mode:
+             1)search for a trigger 
+             2) post trigger they fill their buffer completely 
+             3) they stop acquiring data
+
+        In dwf 3.19.5 there were differences between Single1 and Single, however in 3.21.3 I haven't 
+        found any differences between the 2 modes.
+        """
+        
+        #analogIn.acquisitionModeSet(DwfAcquisitionMode.Single1)
+        analogIn.acquisitionModeSet(DwfAcquisitionMode.Single)
 
         # In record mode, trigger_position =0 means the trigger is at the center of the record. 
         # Let's make it so that the trigger is always at the beginning of the record
@@ -262,10 +281,16 @@ def configure_analog_in(analogIn, trigger_flag):
         #trigger_position= 0
 
         #TODO decrease buffer size to exactly the trace length size to increase speed?
+        print("buffer size before change: {} ".format(analogIn.bufferSizeGet()))
+        analogIn.bufferSizeSet(RECORD_LENGTH_SAMPLES)
+        print("buffer size after change: {}".format(analogIn.bufferSizeGet()))
+
     else:
-        # For records that are longer than the buffer size use record mode. This mode allows you to read data from the cyclical
-        # ADC buffer while writing is occuring. Of course, if you can't remove as fast as you create, you end up with lost data.
-        # You must check for this. 
+        """ 
+        For records that are longer than the buffer size use record mode. This mode allows you to read data from the cyclical
+        ADC buffer while writing is occuring. Of course, if you can't remove as fast as you create, you end up with lost data.
+        You must check for this.
+        """ 
         analogIn.acquisitionModeSet(DwfAcquisitionMode.Record)
 
         # In record mode, trigger_position =0 means the trigger is at the beginning of the record 
@@ -293,20 +318,22 @@ def configure_analog_in(analogIn, trigger_flag):
         analogIn.triggerChannelSet(CH_TRIGGER)
         
         #------ trigger position -------
-        # from pyDWF documentation: 
-        '''Set the AnalogIn instrument trigger position, in seconds.The meaning of the trigger 
-        position depends on the currently selected acquisition mode:
+        """"
+        from pyDWF documentation: 
+            Set the AnalogIn instrument trigger position, in seconds.The meaning of the trigger 
+            position depends on the currently selected acquisition mode:
         
-        In Record acquisition mode, the trigger position is the time of the first valid sample acquired relative
-        to the position of the trigger event. Negative values indicates times before the trigger time. To place
-        the trigger in the middle of the recording, this value should be set to -0.5 times the duration of the recording.
+            In Record acquisition mode, the trigger position is the time of the first valid sample acquired relative
+            to the position of the trigger event. Negative values indicates times before the trigger time. To place
+            the trigger in the middle of the recording, this value should be set to -0.5 times the duration of the recording.
 
-        In Single acquisition mode, the trigger position is the trigger event time relative to the center of the
-        acquisition window.To place the trigger in the middle of the acquisition buffer, the value should be 0.'''
+            In Single acquisition mode, the trigger position is the trigger event time relative to the center of the
+            acquisition window.To place the trigger in the middle of the acquisition buffer, the value should be 0.'''
         
-        #MP: The above doesn't make sense for the record case. The trigger can never be in the center of the record in 
-        # record mode since the record can be way longer than the buffer. Let's just figure out when the trigger is
-        #  at the very beginning of the trace. 
+        MP: The above doesn't make sense for the record case. The trigger can never be in the center of the record in 
+         record mode since the record can be way longer than the buffer. Let's just figure out when the trigger is
+          at the very beginning of the trace.
+        """ 
         #print("Trigger Position Possible Values:{}".format(analogIn.triggerPositionInfo()))
         #print("MP: These trigger position numbers are crazy. There is a bug or the documentation is messed up")
         analogIn.triggerPositionSet(trigger_position)
@@ -322,17 +349,19 @@ def configure_analog_in(analogIn, trigger_flag):
     return channels       
 
 def acquire_one_record_record(analogIn, channels,trigger_flag):
-    #This function gathers one record worth of samples ... sometimes in multiple queries to the ADC
-    #It see's if there are any samples available for collecting and collects them a few at a time
-    #
-    #output
-    #   1) record: [nsamples, nchannel] array
-    #   2) time_of_first_sample: trigger time of the record 
+    """"
+    This function gathers one record worth of samples ... sometimes in multiple queries to the ADC
+    It see's if there are any samples available for collecting and collects them a few at a time
+    
+    output
+       1) record: [nsamples, nchannel] array
+       2) time_of_first_sample: trigger time of the record
+    """ 
     record=[]
 
     total_samples_lost = total_samples_corrupted = 0
     number_ADC_queries = 0
-    
+
     while True:
         number_ADC_queries +=1
 
@@ -347,15 +376,19 @@ def acquire_one_record_record(analogIn, channels,trigger_flag):
         total_samples_corrupted += current_samples_corrupted
 
         if current_samples_lost != 0:
-            # Append NaN samples as placeholders for lost samples.
-            # This follows the Digilent example.
-            # We haven't verified yet that this is the proper way to handle lost samples.
+            """ 
+            Append NaN samples as placeholders for lost samples.
+            This follows the Digilent example.
+            We haven't verified yet that this is the proper way to handle lost samples.
+            """
             lost_samples = np.full((current_samples_lost, len(channels)), np.nan)
             record.append(lost_samples)
         if current_samples_available != 0:
-            # Append samples read from both channels.
-            # Note that we read the samples separately for each channel;
-            # We then put them into the same 2D array with shape (current_samples_available, len(channels)).
+            """"
+             Append samples read from both channels.
+             Note that we read the samples separately for each channel;
+             We then put them into the same 2D array with shape (current_samples_available, len(channels)).
+            """
             current_samples = np.vstack(
                 [
                     analogIn.statusData(channel_index, current_samples_available)
@@ -401,78 +434,53 @@ def acquire_one_record_record(analogIn, channels,trigger_flag):
     return record, time_of_first_sample
 
 def acquire_one_record_single(analogIn, channels,trigger_flag):
-    #This function is used when analogIn is in the single and single1 mode.
-    #It   gathers one record worth of samples in one read call to the ADC
-    #
-    # Outputs:
-    #   1) record: [nsamples, nchannel] array
-    #   2) time_of_first_sample: trigger time of the record 
+    """
+    This function is used when analogIn is in the single and single1 mode.
+    It   gathers one record worth of samples in one read call to the ADC
     
-    total_samples_lost = total_samples_corrupted = 0
+    Outputs:
+      1) record: [nsamples, nchannel] array
+      2) time_of_first_sample: trigger time of the record 
+    """
     number_ADC_queries = 0
+
+    nSamples_Buffer= analogIn.bufferSizeGet()
+    #print("Buffersize: {}".format(nSamples_Buffer))
     
     while True:
         number_ADC_queries +=1
 
-        status = analogIn.status(False)
+        status = analogIn.status(True)
+        #print("status pre done: {}".format(status))
+        
         #let's only pull data from the ADC buffer when status= Done
         if status==DwfState.Done:   
-            (
-            current_samples_available,
-            current_samples_lost,
-            current_samples_corrupted,
-            ) = analogIn.statusRecord()
-            #print("Current_samples_available:{}".format(current_samples_available))
-            #print("Samples Remaining:  {}".format(analogIn.statusSamplesLeft()))
+            # Note that we read the samples separately for each channel;
+            # We then put them into the same 2D array with shape (current_samples_available, 2).
+            record = np.vstack(
+                [
+                    #analogIn.statusData(channel_index, current_samples_available)
+                    analogIn.statusData(channel_index,nSamples_Buffer)
+                    for channel_index in channels
+                ]
+            ).transpose()
 
-            status = analogIn.status(True)
-            #print("status: {}".format(status))
-
-            #mp: this is where shit gets weird. If you call analogIn.statusRecord after 
-            # calling analogIn.status(false) then subsequently calling analogIn.status(true)
-            # analogIn.statusRecord() claims that there is nothing there are zero samples available
-            # for mode=single1 and it keeps accruing for mode=single       
-            #(
-            #current_samples_available2,
-            #current_samples_lost2,
-            #current_samples_corrupted2,
-            #) = analogIn.statusRecord()
-            #print("Current_samples_available2:{}".format(current_samples_available2))
-
-            total_samples_lost += current_samples_lost
-            total_samples_corrupted += current_samples_corrupted
-
-            if current_samples_available != 0:
-                # Append samples read from both channels.
-                # Note that we read the samples separately for each channel;
-                # We then put them into the same 2D array with shape (current_samples_available, 2).
-                record = np.vstack(
-                    [
-                        analogIn.statusData(channel_index, current_samples_available)
-                        for channel_index in channels
-                    ]
-                ).transpose()
-
-            
-                #print("Total # of ADC Queries for this event:{}".format(number_ADC_queries))
-                # We received the last of the record samples.
-                # Note the time, in seconds, of the first valid sample, and break from the acquisition loop.
-            
-                #------- We need to concatenate the file to the appropriate size ------
-                #This keeps the beginning of the file ... thus the distance from the start of trace to
-                #to the trigger will remain fixed. 
-                if len(record) > RECORD_LENGTH_SAMPLES:
-                    discard_count = len(record) - RECORD_LENGTH_SAMPLES
-                    print(
-                        "- NOTE - discarding newest {} of {} samples ({:.1f}%); keeping {} samples.".format(
-                            discard_count,
-                            len(record),
-                            100.0 * discard_count / len(record),
-                            RECORD_LENGTH_SAMPLES,
-                        )
+            #------- We need to concatenate the file to the appropriate size ------
+            #This keeps the beginning of the file ... thus the distance from the start of trace to
+            #to the trigger will remain fixed. 
+            if len(record) > RECORD_LENGTH_SAMPLES:
+                discard_count = len(record) - RECORD_LENGTH_SAMPLES
+                print(
+                    "- NOTE - discarding newest {} of {} samples ({:.1f}%); keeping {} samples.".format(
+                        discard_count,
+                        len(record),
+                        100.0 * discard_count / len(record),
+                        RECORD_LENGTH_SAMPLES,
                     )
-                    record = record[:RECORD_LENGTH_SAMPLES]
-                
+                )
+                record = record[:RECORD_LENGTH_SAMPLES]
+            
+            # Note the time, in seconds, of the first valid sample, and break from the acquisition loop.    
             if trigger_flag:
                 #print("TriggerPositionStatus:{}".format(analogIn.triggerPositionStatus()))
                 #print("TriggerPosition:{}".format(analogIn.triggerPositionGet()))
@@ -485,13 +493,9 @@ def acquire_one_record_single(analogIn, channels,trigger_flag):
 
             break
 
-    if total_samples_lost != 0:
-        print("- WARNING - {} samples were lost! Reduce sample frequency.".format(total_samples_lost))
+    print("Total Number of ADC Queries For This Trace: {}".format(number_ADC_queries))
 
-    if total_samples_corrupted != 0:
-        print("- WARNING - {} samples could be corrupted! Reduce sample frequency.".format(total_samples_corrupted))
     return record, time_of_first_sample
-
 
 def run_acquistion(
     analogIn,
@@ -499,10 +503,11 @@ def run_acquistion(
     number_records,
     channels
 ):
-    # Run Acquisition does 2 things:
-    #   1) Records samples/traces
-    #   2) makes and updates plots 
-    
+    """"
+    Run Acquisition does 2 things:
+      1) Records samples/traces
+      2) makes and updates plots 
+    """
     number_records_taken = 0
     if lgc_lockIn:
         #------- Initialize Lockin --------------------
@@ -531,21 +536,20 @@ def run_acquistion(
     fig_raw, ax_raw = plt.subplots(2, 1, figsize=(5, 8))
     plt.subplots_adjust(hspace=0.5)
     
-   
-
     while True:
       
         #--------------- 1) Records Traces --------------------------
         print("[{}] Recording {} samples ...".format(number_records_taken, RECORD_LENGTH_SAMPLES))
-    
-        #analogIn.configure(reconfigure,start)
-        #   reconfigure (bool): 
-        #           true  = commits all the changes ... this isn't needed since auto-config is default.
-        #           false = no changes are committed
-        #   start(bool):
-        #           True = run acquisition
-        #           False = stop acquistion
-        #    
+
+        """
+        analogIn.configure(reconfigure,start)
+          reconfigure (bool): 
+                  true  = commits all the changes ... this isn't needed since auto-config is default.
+                  false = no changes are committed
+          start(bool):
+                  True = run acquisition
+                  False = stop acquistion
+        """    
         analogIn.configure(False, True)  # Start acquisition sequence for one record
 
         #Let's use different single record acquisition functions for the DAQ different modes
@@ -590,12 +594,7 @@ def run_acquistion(
             fig_raw.canvas.draw() 
             fig_raw.canvas.flush_events()
             
-            
-            
-            
-            
             #--- update demodulation plots ----
-            
             title_demod= "Demodulated Trace #{}".format(number_records_taken,)
             xlim_time=None
             
@@ -614,8 +613,6 @@ def run_acquistion(
             #These commands force the figure update
             fig_demod.canvas.draw() 
             fig_demod.canvas.flush_events()
-
-
         
         if lgc_lockIn:
             #----------- Lockin Signal -------------------------------
@@ -625,9 +622,7 @@ def run_acquistion(
 
             Lockin_Frequency = (number_records_taken)/(time_lockin[number_records_taken]-time_lockin[0])
             
-
             #---------- Make/Update Plots -----------------------------
-
             lgc_diagnostic = False
             if lgc_diagnostic or  (number_records_taken >= number_records-1):
                 print("Estimated Lock-In Frequency:{} Hz vs Trace Frequency:{} Hz".format(Lockin_Frequency, 1/Record_Length_Time))
@@ -729,17 +724,19 @@ def run_acquistion(
             break
 
 def LockIn(record, time_sample, ANALOG_OUT_FREQUENCY, PHASE_DEMOD) :
+    """
     # This function:
     # 1) Calculates the demodulation phase angle from the excitation ... if not given. 
     # 2) makes the demodulation wave -> the phase needs to be checked in the real time plots
     # 3) demodulates the signal
     # 4) calculates the DC lock-in value
-    
-     # Let's calculate the demodulation phase angle for the reference signal 
-    # if the trigger was behaving at is should ... we shouldn't need to do this
+    """
+
     phi= ANALOG_OUT_FREQUENCY*(2*np.pi)*time_sample
 
     #------ 1) Calculate the demodulation phase angle
+    # Let's calculate the demodulation phase angle for the reference signal 
+    # if the trigger was behaving at is should ... we shouldn't need to do this
     #we're basically just taking the FFT at the excitation frequency
     if PHASE_DEMOD is None:
         PHASE_DEMOD = np.angle(np.sum(record[:,1]*(np.cos(phi)-1j*np.sin(phi)))) #[radians]
@@ -750,28 +747,34 @@ def LockIn(record, time_sample, ANALOG_OUT_FREQUENCY, PHASE_DEMOD) :
     #------ 2) Make the Demodulation Wave ------
     ref_demod= np.cos(phi+PHASE_DEMOD)
     
-    #/////////////////////////////////////////////////////////////////////////////
-    #TODO: 10.6.f make the demodulated signal (just like you did in 10.6)
-    
-    #Student Version (these are just place holders that won't demodulate anything, 
-    # but they won't crash the code either 
+    #//////////////////////////////////////////////////////
     #------ 3) Demodulate the Signal -----------
+    #TODO: 10.7.c make the demodulated signal (just like you did in 10.6) 
+    #Initial Student Version
     CHsignal = 0
     record_demod = record[:,CHsignal]
+
+    #Solution here
+    
     #------ 4) Calculate the DC lock-in --------
-    #TODO: 10.7 
-    record_DC_Lockin = 0.0
-    #////////////////////////////////////////////////////////////////////////////
+    #TODO: 10.7.c: make the average
+    #Initial Student Version
+    record_DC_Lockin = 0
+    
+    #Solution here
+    #////////////////////////////////////////////////////////
 
     return record_DC_Lockin,ref_demod
 
           
 def Demodulate(record, time_sample, ANALOG_OUT_FREQUENCY,PHASE_DEMOD):
-    # This function:
-    # 1) Calculates the demodulation phase angle from the excitation (if necessary)
-    # 2) makes the demodulation wave -> the phase needs to be checked in the real time plots
-    # 3) demodulates the signal
-    # 4) Lowpass filter to remove 2*nu_carrier components
+    """
+    This function:
+    1) Calculates the demodulation phase angle from the excitation (if necessary)
+    2) makes the demodulation wave -> the phase needs to be checked in the real time plots
+    3) demodulates the signal
+    4) Lowpass filter to remove 2*nu_carrier components
+    """
 
     # Let's calculate the demodulation phase angle for the reference signal -> we shouldn't need to do this
     phi= ANALOG_OUT_FREQUENCY*(2*np.pi)*time_sample
@@ -786,17 +789,15 @@ def Demodulate(record, time_sample, ANALOG_OUT_FREQUENCY,PHASE_DEMOD):
     #Let's create demodulation function
     ref_demod= np.cos(phi+PHASE_DEMOD)
     
-    #///////////////////////////////////////////////////////////
-    # TODO: 10.7f write the code to demodulate record
+    #///////////////////////////////////////////////////////////////
     #----- 3) DEMODULATE SIGNAL ---------------
-    # Student initally see (This code won't crash the code, but it won't demodulate)
+    # TODO: 10.6f write the code to demodulate record
+    # Student initally sees
     CH_demod=0 
     record_demod = record[:,CH_demod]
 
-    #--- Solution ----
-
-    #///////////////////////////////////////////////////////////
-
+    #Solution ?
+    #///////////////////////////////////////////////////////////////
 
     #----- 4) Low Pass Filter -----------------
     #Let's put a simple 1pole low pass filter on it. 
@@ -868,7 +869,7 @@ def plot_time(
 
 def plot_fft(trace, sample_frequency, ax_fft,lines, xlim_fft):
     #/////////////////////////////////////////////////////////////////////////
-    # 10.4 TODO: get the FFT Frquency (fft_freq) and magnitude (fft_magnitude). 
+    # 10.4b TODO: get the FFT Frquency (fft_freq) and magnitude (fft_magnitude). 
     #--- Initial Student Version place holder ---
     fft_freq = fft_magnitude = np.zeros(len(trace))
     #----- Solution-----
@@ -893,9 +894,6 @@ def plot_fft(trace, sample_frequency, ax_fft,lines, xlim_fft):
         lines.set_xdata= fft_freq[lgc_positive]
         lines.set_ydata= fft_magnitude[lgc_positive]       
    
-   
-   
-    # TODO 10.4: adjust the x-limit to see the frequencies you want
     if xlim_fft is None:
         xlim_fft = [0, sample_frequency / 2]
         lgc_range= np.full((len(trace)),True)
@@ -909,7 +907,13 @@ def plot_fft(trace, sample_frequency, ax_fft,lines, xlim_fft):
     ymax=2.0*fft_magnitude[lgc_range].max()
     #ax_fft.set_ylim(None,ymax)  # Adjust if needed
     #ax_fft.set_ylim((0,ymax))  # Adjust if needed
-    ax_fft.set_ylim(0,ymax)    
+    ax_fft.set_ylim(0,ymax)
+
+    return lines    
+
+    
+
+
 
 def main():
     dwf = DwfLibrary()
@@ -946,11 +950,9 @@ def main():
             
             time.sleep(2.0) # Wait for a bit to ensure the stability of the analog output signals.
 
-            #////////////////////////////
             # 10.3.a: TODO: comment out this while loop which pauses the loop before getting to the oscilloscope.
-            #while True:
-            #    time.sleep(2.0)
-            #////////////////////////////    
+            while True:
+                time.sleep(2.0)
 
             #----- Configure analogIn (Oscilloscope) ------
             USE_TRIGGER= True

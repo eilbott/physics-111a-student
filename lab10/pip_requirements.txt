@@ -1,0 +1,10 @@
+# To use:
+# python3 -m venv .lab10
+# source .lab10/bin/activate
+# pip install -r pip_requirements.txt
+
+numpy==1.26.4
+matplotlib==3.8.0
+ipykernel==6.29.3
+ipympl==0.9.3
+pyqt5==5.15.10

@@ -661,7 +661,7 @@ def _run_acquistion(
                 time_sample=time_sample,
                 record=record,
                 analog_out_frequency=analog_out_frequency,
-                record_length_time=record_length_time
+                analog_in_frequency=analog_in_frequency
             )
 
             lines_voltage_raw, line_fft_raw = _plot_raw_or_demod(
@@ -919,7 +919,7 @@ def _calc_demod(
     time_sample: NDArray[np.float64],
     record: NDArray[np.float64],
     analog_out_frequency: float,
-    record_length_time: float
+    analog_in_frequency: float
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     '''
     Perform demodulation calculations and filtering.
@@ -936,7 +936,7 @@ def _calc_demod(
     ##
 
     # How many samples need to be averaged to give a nu_3db rolloff?
-    n_filt = round(nu_3db * record_length_time)
+    n_filt = round(analog_in_frequency/nu_3dB)
 
     # Put a simple 1pole low-pass filter on it
     # You can also use the scipy python package to get more advanced filters

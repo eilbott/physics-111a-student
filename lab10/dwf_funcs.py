@@ -932,7 +932,7 @@ def _calc_demod(
     ## Write solution for: Modulated Heart Rate Monitor
     ## Replace `0` with a frequency in Hz.
     ##
-    nu_3db = 0 #[Hz]
+    nu_3dB = 0 #[Hz]
     ##
 
     # How many samples need to be averaged to give a nu_3db rolloff?
